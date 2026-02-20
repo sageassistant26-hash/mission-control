@@ -1,692 +1,283 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { CheckCircle, Circle, Lock, AlertCircle, Loader2, X } from 'lucide-react';
+import { CheckCircle, Clock, Rocket, Target, AlertTriangle, Flame, Zap, TrendingUp } from 'lucide-react';
 
-interface PlanningOption {
-  id: string;
-  label: string;
+interface Phase {
+  number: number;
+  title: string;
+  subtitle: string;
+  target: string;
+  targetDate: string;
+  status: 'active' | 'next' | 'planned';
+  statusLabel: string;
+  statusEmoji: string;
+  deliverables: string[];
+  milestone: string;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  badgeBg: string;
+  badgeText: string;
 }
 
-interface PlanningQuestion {
-  question: string;
-  options: PlanningOption[];
-}
+const PHASES: Phase[] = [
+  {
+    number: 0,
+    title: 'MVP: Prove the Concept',
+    subtitle: 'Phase 0',
+    target: 'Day 10',
+    targetDate: 'March 1, 2026',
+    status: 'active',
+    statusLabel: 'ACTIVE NOW',
+    statusEmoji: '🔥',
+    deliverables: [
+      'Landing page live on clawmentor.ai',
+      'Supabase waitlist capture',
+      'Analysis engine v1 — paste AGENTS.md → get compatibility report',
+      'First mentor agreement (Tech With Tim)',
+      'Manual rollback workflow documented',
+    ],
+    milestone: '10 waitlist signups + 1 mentor agreement',
+    color: 'text-orange-400',
+    borderColor: 'border-orange-500',
+    bgColor: 'bg-orange-500/5',
+    badgeBg: 'bg-orange-500/20',
+    badgeText: 'text-orange-400',
+  },
+  {
+    number: 1,
+    title: 'The Core Loop',
+    subtitle: 'Phase 1',
+    target: 'Day 17',
+    targetDate: 'March 8, 2026',
+    status: 'next',
+    statusLabel: 'UP NEXT',
+    statusEmoji: '⏳',
+    deliverables: [
+      'Mentor subscription — install/update flow',
+      'Compatibility scanner (automated)',
+      'User dashboard',
+      'Stripe payments integrated',
+      'Real rollback (local snapshot)',
+    ],
+    milestone: '$500 MRR — first paying subscribers',
+    color: 'text-yellow-400',
+    borderColor: 'border-yellow-500/50',
+    bgColor: 'bg-yellow-500/5',
+    badgeBg: 'bg-yellow-500/20',
+    badgeText: 'text-yellow-400',
+  },
+  {
+    number: 2,
+    title: 'Scale',
+    subtitle: 'Phase 2',
+    target: 'Day 35',
+    targetDate: 'March 26, 2026',
+    status: 'planned',
+    statusLabel: 'PLANNED',
+    statusEmoji: '🔮',
+    deliverables: [
+      '3 mentors live',
+      'Skool community integration',
+      'Affiliate dashboard',
+      'Marketing content engine (Spark)',
+      '$2k MRR',
+    ],
+    milestone: '$2,000 MRR',
+    color: 'text-blue-400',
+    borderColor: 'border-blue-500/30',
+    bgColor: 'bg-blue-500/5',
+    badgeBg: 'bg-blue-500/20',
+    badgeText: 'text-blue-400',
+  },
+  {
+    number: 3,
+    title: 'Moat',
+    subtitle: 'Phase 3',
+    target: '~Q2 2026',
+    targetDate: 'Q2 2026',
+    status: 'planned',
+    statusLabel: 'PLANNED',
+    statusEmoji: '🔮',
+    deliverables: [
+      '10 mentors live',
+      '$10k MRR',
+      'Agent-aware compatibility (beyond config files)',
+      'Exit positioning begins',
+    ],
+    milestone: '$10k MRR = mission achieved',
+    color: 'text-purple-400',
+    borderColor: 'border-purple-500/30',
+    bgColor: 'bg-purple-500/5',
+    badgeBg: 'bg-purple-500/20',
+    badgeText: 'text-purple-400',
+  },
+];
 
-interface PlanningMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-}
+const RISKS = [
+  {
+    icon: <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />,
+    title: 'OpenAI builds native safety layer',
+    detail: '6–12 month runway → Phase 0 is non-negotiable. Ship now.',
+    severity: 'high',
+  },
+  {
+    icon: <TrendingUp className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />,
+    title: 'Mentor retention depends on subscriber growth',
+    detail: 'Focus on creator marketing early. No subscribers = no mentors.',
+    severity: 'medium',
+  },
+  {
+    icon: <Zap className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />,
+    title: 'ClawHavoc makes users security-conscious',
+    detail: 'Our positioning is perfect — safety-first AI agents via trusted mentors.',
+    severity: 'opportunity',
+  },
+];
 
-interface PlanningState {
-  taskId: string;
-  sessionKey?: string;
-  messages: PlanningMessage[];
-  currentQuestion?: PlanningQuestion;
-  isComplete: boolean;
-  dispatchError?: string;
-  spec?: {
-    title: string;
-    summary: string;
-    deliverables: string[];
-    success_criteria: string[];
-    constraints: Record<string, unknown>;
-  };
-  agents?: Array<{
-    name: string;
-    role: string;
-    avatar_emoji: string;
-    soul_md: string;
-    instructions: string;
-  }>;
-  isStarted: boolean;
-}
-
-interface PlanningTabProps {
-  taskId: string;
-  onSpecLocked?: () => void;
-}
-
-export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
-  const [state, setState] = useState<PlanningState | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [starting, setStarting] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [canceling, setCanceling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [otherText, setOtherText] = useState('');
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
-  const [retryingDispatch, setRetryingDispatch] = useState(false);
-  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
-
-  // Refs to track polling state without triggering re-renders
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isPollingRef = useRef(false);
-  const lastSubmissionRef = useRef<{ answer: string; otherText?: string } | null>(null);
-  const currentQuestionRef = useRef<string | undefined>(undefined);
-  
-
-
-  // Load planning state (initial load only)
-  const loadState = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/planning`);
-      if (res.ok) {
-        const data = await res.json();
-        setState(data);
-        currentQuestionRef.current = data.currentQuestion?.question;
-        // Don't call onSpecLocked on initial load - only when planning completes actively
-      }
-    } catch (err) {
-      console.error('Failed to load planning state:', err);
-      setError('Failed to load planning state');
-    } finally {
-      setLoading(false);
-    }
-  }, [taskId]);
-
-  // Stop polling (defined first to avoid circular dependency)
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    if (pollingTimeoutRef.current) {
-      clearTimeout(pollingTimeoutRef.current);
-      pollingTimeoutRef.current = null;
-    }
-    setIsWaitingForResponse(false);
-  }, []);
-
-  // Poll for updates using the poll endpoint (lightweight OpenClaw check)
-  const pollForUpdates = useCallback(async () => {
-    if (isPollingRef.current) return; // Prevent overlapping polls
-    isPollingRef.current = true;
-
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/planning/poll`);
-      if (res.ok) {
-        const data = await res.json();
-
-        if (data.hasUpdates) {
-          const newQuestion = data.currentQuestion?.question;
-          const questionChanged = newQuestion && currentQuestionRef.current !== newQuestion;
-
-          // Force a full state reload from server to avoid stale state issues
-          const freshRes = await fetch(`/api/tasks/${taskId}/planning`);
-          if (freshRes.ok) {
-            const freshData = await freshRes.json();
-            setState(freshData);
-          } else {
-            setState(prev => ({
-              ...prev!,
-              messages: data.messages,
-              isComplete: data.complete,
-              spec: data.spec,
-              agents: data.agents,
-              currentQuestion: data.currentQuestion,
-              dispatchError: data.dispatchError,
-            }));
-          }
-
-          if (questionChanged) {
-            currentQuestionRef.current = newQuestion;
-            setSelectedOption(null);
-            setOtherText('');
-            setIsSubmittingAnswer(false);
-          }
-          // Always clear submitting state when we have a question
-          if (data.currentQuestion) {
-            setIsSubmittingAnswer(false);
-            setSubmitting(false);
-          }
-
-          // Show dispatch error if present
-          if (data.dispatchError) {
-            setError(`Planning completed but dispatch failed: ${data.dispatchError}`);
-          }
-
-          if (data.complete && onSpecLocked) {
-            onSpecLocked();
-          }
-
-          // Only stop polling when we actually have a question or completion
-          if (data.currentQuestion || data.complete || data.dispatchError) {
-            setIsWaitingForResponse(false);
-            stopPolling();
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Failed to poll for updates:', err);
-    } finally {
-      isPollingRef.current = false;
-    }
-  }, [taskId, onSpecLocked, stopPolling, setState, setError, setIsSubmittingAnswer, setSelectedOption, setOtherText]);
-
-  // Start polling when waiting for response
-  const startPolling = useCallback(() => {
-    stopPolling();
-    setIsWaitingForResponse(true);
-
-    // Poll every 2 seconds - need faster feedback for planning UX
-    // Planning is typically short-lived, so this is acceptable
-    pollingIntervalRef.current = setInterval(() => {
-      pollForUpdates();
-    }, 2000);
-
-    // Set a 90-second timeout - Opus can take a while to respond
-    pollingTimeoutRef.current = setTimeout(() => {
-      stopPolling();
-      setSubmitting(false);
-      setIsSubmittingAnswer(false);
-      setError('The orchestrator is taking too long to respond. Please try submitting again or refresh the page.');
-    }, 90000);
-  }, [pollForUpdates, stopPolling]);
-
-  // Update currentQuestion ref when state changes
-  useEffect(() => {
-    if (state?.currentQuestion) {
-      currentQuestionRef.current = state.currentQuestion.question;
-    }
-  }, [state]);
-
-  // Initial load
-  useEffect(() => {
-    loadState();
-    return () => stopPolling();
-  }, [loadState, stopPolling]);
-
-  // Auto-start polling if planning is in progress but no question loaded yet
-  useEffect(() => {
-    if (state && state.isStarted && !state.isComplete && !state.currentQuestion && !isWaitingForResponse) {
-      startPolling();
-    }
-  }, [state, isWaitingForResponse, startPolling]);
-
-  // Start planning session
-  const startPlanning = async () => {
-    setStarting(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/planning`, { method: 'POST' });
-      const data = await res.json();
-
-      if (res.ok) {
-        setState(prev => ({
-          ...prev!,
-          sessionKey: data.sessionKey,
-          messages: data.messages || [],
-          isStarted: true,
-        }));
-
-        // Start polling for the first question
-        startPolling();
-      } else {
-        setError(data.error || 'Failed to start planning');
-      }
-    } catch (err) {
-      setError('Failed to start planning');
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  // Submit answer
-  const submitAnswer = async () => {
-    if (!selectedOption) return;
-
-    setSubmitting(true);
-    setIsSubmittingAnswer(true); // Show submitting state in UI
-    setError(null);
-
-    // Store submission for retry
-    const submission = {
-      answer: selectedOption?.toLowerCase() === 'other' ? 'other' : selectedOption,
-      otherText: selectedOption?.toLowerCase() === 'other' ? otherText : undefined,
-    };
-    lastSubmissionRef.current = submission;
-
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/planning/answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submission),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        // Start polling for the next question or completion
-        // Don't clear selection yet - keep it visible while waiting for response
-        startPolling();
-      } else {
-        setError(data.error || 'Failed to submit answer');
-        setIsSubmittingAnswer(false); // Clear submitting state on error
-        // Clear selection on error so user can try again
-        setSelectedOption(null);
-        setOtherText('');
-      }
-    } catch (err) {
-      setError('Failed to submit answer');
-      setIsSubmittingAnswer(false); // Clear submitting state on error
-      // Clear selection on error so user can try again
-      setSelectedOption(null);
-      setOtherText('');
-    } finally {
-      // Don't re-enable submit button here — wait until next question arrives
-      // setSubmitting(false) is handled when polling gets the new question
-    }
-  };
-
-  // Retry last submission
-  const handleRetry = async () => {
-    const submission = lastSubmissionRef.current;
-    if (!submission) return;
-
-    setSubmitting(true);
-    setIsSubmittingAnswer(true); // Show submitting state
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/planning/answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submission),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        startPolling();
-      } else {
-        setError(data.error || 'Failed to submit answer');
-        // Clear submission state and selection on error so user can retry
-        setIsSubmittingAnswer(false);
-        setSelectedOption(null);
-        setOtherText('');
-      }
-    } catch (err) {
-      setError('Failed to submit answer');
-      // Clear submission state and selection on error so user can retry
-      setIsSubmittingAnswer(false);
-      setSelectedOption(null);
-      setOtherText('');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Retry dispatch for failed planning completions
-  const retryDispatch = async () => {
-    setRetryingDispatch(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/planning/retry-dispatch`, {
-        method: 'POST',
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        console.log('Dispatch retry successful:', data.message);
-        setError(null);
-      } else {
-        setError(`Failed to retry dispatch: ${data.error}`);
-      }
-    } catch (err) {
-      setError('Failed to retry dispatch');
-    } finally {
-      setRetryingDispatch(false);
-    }
-  };
-
-  // Cancel planning
-  const cancelPlanning = async () => {
-    if (!confirm('Are you sure you want to cancel planning? This will reset the planning state.')) {
-      return;
-    }
-
-    setCanceling(true);
-    setError(null);
-    setIsSubmittingAnswer(false); // Clear submitting state when canceling
-    stopPolling(); // Stop polling when canceling
-
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/planning`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        // Reset state
-        setState({
-          taskId,
-          isStarted: false,
-          messages: [],
-          isComplete: false,
-        });
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Failed to cancel planning');
-      }
-    } catch (err) {
-      setError('Failed to cancel planning');
-    } finally {
-      setCanceling(false);
-    }
-  };
-
-  if (loading) {
+function StatusBadge({ phase }: { phase: Phase }) {
+  if (phase.status === 'active') {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-mc-accent" />
-        <span className="ml-2 text-mc-text-secondary">Loading planning state...</span>
+      <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/20 border border-orange-500/40 rounded-full">
+        <Flame className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+        <span className="text-xs font-bold text-orange-400 tracking-wider">{phase.statusLabel}</span>
       </div>
     );
   }
-
-  // Planning complete - show spec and agents
-  if (state?.isComplete && state?.spec) {
+  if (phase.status === 'next') {
     return (
-      <div className="p-4 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-green-400">
-            <Lock className="w-5 h-5" />
-            <span className="font-medium">Planning Complete</span>
+      <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
+        <Clock className="w-3.5 h-3.5 text-yellow-400" />
+        <span className="text-xs font-bold text-yellow-400 tracking-wider">{phase.statusLabel}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full">
+      <span className="text-xs">{phase.statusEmoji}</span>
+      <span className="text-xs font-bold text-mc-text-secondary tracking-wider">{phase.statusLabel}</span>
+    </div>
+  );
+}
+
+export function PlanningTab() {
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  return (
+    <div className="min-h-full bg-[#0A0A0A] text-white p-6 space-y-8">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <Rocket className="w-6 h-6 text-[#F97316]" />
+            <h1 className="text-2xl font-bold tracking-tight">Claw Mentor — Project Plan</h1>
           </div>
-          {state.dispatchError && (
-            <div className="text-right">
-              <span className="text-sm text-amber-400">⚠️ Dispatch Failed</span>
-            </div>
-          )}
+          <p className="text-mc-text-secondary text-sm">
+            Current phase: <span className="text-orange-400 font-semibold">Phase 0 — MVP: Prove the Concept</span>
+          </p>
         </div>
-        
-        {/* Dispatch Error with Retry */}
-        {state.dispatchError && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-amber-400 text-sm font-medium mb-2">Task dispatch failed</p>
-                <p className="text-amber-300 text-xs mb-3">{state.dispatchError}</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={retryDispatch}
-                    disabled={retryingDispatch}
-                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs rounded disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {retryingDispatch ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        Retrying...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-3 h-3" />
-                        Retry Dispatch
-                      </>
-                    )}
-                  </button>
-                  <span className="text-amber-400 text-xs">
-                    This will attempt to assign the task to an agent
+        <div className="text-right">
+          <div className="text-xs text-mc-text-secondary">Today</div>
+          <div className="text-sm font-medium text-mc-text">{dateStr}</div>
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <div className="relative">
+        {/* Connecting line */}
+        <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-gradient-to-b from-orange-500 via-yellow-500/30 to-purple-500/20 hidden md:block" />
+
+        <div className="space-y-4">
+          {PHASES.map((phase, idx) => (
+            <div key={phase.number} className="relative">
+              {/* Phase dot (desktop) */}
+              <div className={`absolute left-4 top-8 w-4 h-4 rounded-full border-2 ${phase.borderColor} ${
+                phase.status === 'active' ? 'bg-orange-500 shadow-lg shadow-orange-500/50' :
+                phase.status === 'next' ? 'bg-yellow-500/30' :
+                'bg-mc-bg-secondary'
+              } hidden md:block z-10`} />
+
+              {/* Card */}
+              <div className={`md:ml-14 border rounded-xl p-5 ${phase.bgColor} ${phase.borderColor} border transition-all hover:shadow-lg`}>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-xs font-bold text-mc-text-secondary uppercase tracking-widest">
+                        {phase.subtitle}
+                      </span>
+                      <span className="text-xs text-mc-text-secondary">·</span>
+                      <span className="text-xs text-mc-text-secondary">{phase.target} = {phase.targetDate}</span>
+                    </div>
+                    <h3 className={`text-lg font-bold ${phase.color}`}>{phase.title}</h3>
+                  </div>
+                  <StatusBadge phase={phase} />
+                </div>
+
+                {/* Deliverables */}
+                <div className="space-y-2 mb-4">
+                  {phase.deliverables.map((d, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      {phase.status === 'active' ? (
+                        <CheckCircle className="w-3.5 h-3.5 text-orange-500/60 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
+                          phase.status === 'next' ? 'bg-yellow-500/40' : 'bg-white/20'
+                        }`} />
+                      )}
+                      <span className="text-sm text-mc-text-secondary">{d}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Milestone */}
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${phase.badgeBg} border ${phase.borderColor}`}>
+                  <Target className={`w-3.5 h-3.5 ${phase.color} flex-shrink-0`} />
+                  <span className={`text-xs font-semibold ${phase.color}`}>
+                    Milestone: {phase.milestone}
                   </span>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-        
-        {/* Spec Summary */}
-        <div className="bg-mc-bg border border-mc-border rounded-lg p-4">
-          <h3 className="font-medium mb-2">{state.spec.title}</h3>
-          <p className="text-sm text-mc-text-secondary mb-4">{state.spec.summary}</p>
-          
-          {state.spec.deliverables?.length > 0 && (
-            <div className="mb-3">
-              <h4 className="text-sm font-medium mb-1">Deliverables:</h4>
-              <ul className="list-disc list-inside text-sm text-mc-text-secondary">
-                {state.spec.deliverables.map((d, i) => (
-                  <li key={i}>{d}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          {state.spec.success_criteria?.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium mb-1">Success Criteria:</h4>
-              <ul className="list-disc list-inside text-sm text-mc-text-secondary">
-                {state.spec.success_criteria.map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          ))}
         </div>
-        
-        {/* Generated Agents */}
-        {state.agents && state.agents.length > 0 && (
-          <div>
-            <h3 className="font-medium mb-2">Agents Created:</h3>
-            <div className="space-y-2">
-              {state.agents.map((agent, i) => (
-                <div key={i} className="bg-mc-bg border border-mc-border rounded-lg p-3 flex items-center gap-3">
-                  <span className="text-2xl">{agent.avatar_emoji}</span>
-                  <div>
-                    <p className="font-medium">{agent.name}</p>
-                    <p className="text-sm text-mc-text-secondary">{agent.role}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Not started - show start button
-  if (!state?.isStarted) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 space-y-4">
-        <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Start Planning</h3>
-          <p className="text-mc-text-secondary text-sm max-w-md">
-            I&apos;ll ask you a few questions to understand exactly what you need. 
-            All questions are multiple choice — just click to answer.
-          </p>
-        </div>
-        
-        {error && (
-          <div className="flex items-center gap-2 text-red-400 text-sm">
-            <AlertCircle className="w-4 h-4" />
-            {error}
-          </div>
-        )}
-        
-        <button
-          onClick={startPlanning}
-          disabled={starting}
-          className="px-6 py-3 bg-mc-accent text-mc-bg rounded-lg font-medium hover:bg-mc-accent/90 disabled:opacity-50 flex items-center gap-2"
-        >
-          {starting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Starting...
-            </>
-          ) : (
-            <>📋 Start Planning</>
-          )}
-        </button>
-      </div>
-    );
-  }
-
-  // Show current question
-  return (
-    <div className="flex flex-col h-full">
-      {/* Progress indicator with cancel button */}
-      <div className="p-4 border-b border-mc-border flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-mc-text-secondary">
-          <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
-          <span>Planning in progress...</span>
-        </div>
-        <button
-          onClick={cancelPlanning}
-          disabled={canceling}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-mc-accent-red hover:bg-mc-accent-red/10 rounded disabled:opacity-50"
-        >
-          {canceling ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Canceling...
-            </>
-          ) : (
-            <>
-              <X className="w-4 h-4" />
-              Cancel
-            </>
-          )}
-        </button>
       </div>
 
-      {/* Question area */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {state?.currentQuestion ? (
-          <div className="max-w-xl mx-auto">
-            <h3 className="text-lg font-medium mb-6">
-              {state.currentQuestion.question}
-            </h3>
-
-            <div className="space-y-3">
-              {state.currentQuestion.options.map((option) => {
-                const isSelected = selectedOption === option.label;
-                const isOther = option.id === 'other' || option.label.toLowerCase() === 'other';
-                const isThisOptionSubmitting = isSubmittingAnswer && isSelected;
-
-                return (
-                  <div key={option.id}>
-                    <button
-                      onClick={() => setSelectedOption(option.label)}
-                      disabled={submitting}
-                      className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
-                        isThisOptionSubmitting
-                          ? 'border-mc-accent bg-mc-accent/20'
-                          : isSelected
-                          ? 'border-mc-accent bg-mc-accent/10'
-                          : 'border-mc-border hover:border-mc-accent/50'
-                      } disabled:opacity-50`}
-                    >
-                      <span className={`w-8 h-8 rounded flex items-center justify-center text-sm font-bold ${
-                        isSelected ? 'bg-mc-accent text-mc-bg' : 'bg-mc-bg-tertiary'
-                      }`}>
-                        {option.id.toUpperCase()}
-                      </span>
-                      <span className="flex-1">{option.label}</span>
-                      {isThisOptionSubmitting ? (
-                        <Loader2 className="w-5 h-5 text-mc-accent animate-spin" />
-                      ) : isSelected && !submitting ? (
-                        <CheckCircle className="w-5 h-5 text-mc-accent" />
-                      ) : null}
-                    </button>
-
-                    {/* Other text input */}
-                    {isOther && isSelected && (
-                      <div className="mt-2 ml-11">
-                        <input
-                          type="text"
-                          value={otherText}
-                          onChange={(e) => setOtherText(e.target.value)}
-                          placeholder="Please specify..."
-                          className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
-                          disabled={submitting}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {error && (
-              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-red-400 text-sm">{error}</p>
-                    {!isWaitingForResponse && lastSubmissionRef.current && (
-                      <button
-                        onClick={handleRetry}
-                        disabled={submitting}
-                        className="mt-2 text-xs text-red-400 hover:text-red-300 underline disabled:opacity-50"
-                      >
-                        {submitting ? 'Retrying...' : 'Retry'}
-                      </button>
-                    )}
-                  </div>
-                </div>
+      {/* Key Risks */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <AlertTriangle className="w-4 h-4 text-[#F97316]" />
+          <h2 className="text-sm font-bold uppercase tracking-wider text-mc-text-secondary">Key Risks</h2>
+        </div>
+        <div className="space-y-3">
+          {RISKS.map((risk, i) => (
+            <div
+              key={i}
+              className={`flex items-start gap-3 p-4 rounded-xl border ${
+                risk.severity === 'high' ? 'bg-red-500/5 border-red-500/20' :
+                risk.severity === 'medium' ? 'bg-yellow-500/5 border-yellow-500/20' :
+                'bg-green-500/5 border-green-500/20'
+              }`}
+            >
+              {risk.icon}
+              <div>
+                <div className="text-sm font-semibold mb-0.5">{risk.title}</div>
+                <div className="text-xs text-mc-text-secondary">{risk.detail}</div>
               </div>
-            )}
-
-            {/* Submit button */}
-            <div className="mt-6">
-              <button
-                onClick={submitAnswer}
-                disabled={!selectedOption || submitting || (selectedOption === 'Other' && !otherText.trim())}
-                className="w-full px-6 py-3 bg-mc-accent text-mc-bg rounded-lg font-medium hover:bg-mc-accent/90 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  'Continue →'
-                )}
-              </button>
-
-              {/* Waiting indicator after submit */}
-              {isSubmittingAnswer && !submitting && (
-                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-mc-text-secondary">
-                  <Loader2 className="w-4 h-4 animate-spin text-mc-accent" />
-                  <span>Waiting for response...</span>
-                </div>
+              {risk.severity === 'opportunity' && (
+                <span className="ml-auto text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full font-medium flex-shrink-0">
+                  ✓ Our Edge
+                </span>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-mc-accent mx-auto mb-2" />
-              <p className="text-mc-text-secondary">
-                {isWaitingForResponse ? 'Waiting for response...' : 'Waiting for next question...'}
-              </p>
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
 
-      {/* Conversation history (collapsed by default) */}
-      {state?.messages && state.messages.length > 0 && (
-        <details className="border-t border-mc-border">
-          <summary className="p-3 text-sm text-mc-text-secondary cursor-pointer hover:bg-mc-bg-tertiary">
-            View conversation ({state.messages.length} messages)
-          </summary>
-          <div className="p-3 space-y-2 max-h-48 overflow-y-auto bg-mc-bg">
-            {state.messages.map((msg, i) => (
-              <div key={i} className={`text-sm ${msg.role === 'user' ? 'text-mc-accent' : 'text-mc-text-secondary'}`}>
-                <span className="font-medium">{msg.role === 'user' ? 'You' : 'Orchestrator'}:</span>{' '}
-                <span className="opacity-75">{msg.content.substring(0, 100)}...</span>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
+      {/* Footer note */}
+      <div className="text-xs text-mc-text-secondary/50 text-center pb-4">
+        Updated by Ember · Mission Control Overhaul · {dateStr}
+      </div>
     </div>
   );
 }

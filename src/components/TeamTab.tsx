@@ -26,26 +26,35 @@ const SUB_AGENTS: AgentCard[] = [
   {
     emoji: '🔬',
     name: 'Scout',
-    title: 'Research Agent',
-    description: 'Finds signals, tracks markets, surfaces opportunities before anyone else sees them.',
-    tags: ['Web Search', 'Analysis', 'Radar'],
-    status: 'planned',
-    model: 'DeepSeek V3',
+    title: 'Intel & Research Agent',
+    description: 'Runs at 3 AM daily. Scans OpenClaw ecosystem, ClawHub, GitHub, and AI agent market for opportunities, risks, and timing signals. Outputs a structured digest for Ember\'s morning strategy review.',
+    tags: ['Web Search', 'Market Intel', 'Risk Radar'],
+    status: 'active',
+    model: 'DeepSeek V3 (openrouter)',
   },
   {
     emoji: '💻',
     name: 'Forge',
     title: 'Coding Agent',
-    description: 'Writes code, ships features, fixes bugs. Fast and precise.',
-    tags: ['Code', 'Shipping', 'Quality'],
-    status: 'planned',
-    model: 'Codex / Claude Sonnet',
+    description: 'Runs at 1 AM nightly. Picks the top task from the Forge queue and ships it — commits to dev branch, logs what was built, flags anything that needs approval before proceeding.',
+    tags: ['Code', 'Shipping', 'Dev Branch'],
+    status: 'active',
+    model: 'Claude Sonnet 4.6',
+  },
+  {
+    emoji: '⚡',
+    name: 'Spark',
+    title: 'Social Media Agent',
+    description: 'Runs at 9 AM daily. Drafts content for @ClawMentor and @heyember. Never posts autonomously — all drafts queued for Ember review. Sandboxed from external content to prevent prompt injection.',
+    tags: ['@ClawMentor', '@heyember', 'Drafts Only'],
+    status: 'active',
+    model: 'Gemini Flash Lite (openrouter)',
   },
   {
     emoji: '✍️',
     name: 'Quill',
     title: 'Content Agent',
-    description: 'Writes copy that converts. Landing pages, emails, social posts. Voice and quality.',
+    description: 'Long-form copy, landing pages, email sequences. Writes with voice and converts.',
     tags: ['Copy', 'Conversion', 'Voice'],
     status: 'planned',
     model: 'Claude Sonnet 4.6',
@@ -140,15 +149,16 @@ export function TeamTab() {
       </div>
 
       {/* Sub-agents */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {SUB_AGENTS.map((agent, i) => (
-          <div key={agent.name} className="bg-mc-bg-secondary border border-mc-border rounded-xl p-5 opacity-70 hover:opacity-90 transition-opacity">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {SUB_AGENTS.filter(a => a.status === 'active').map((agent, i) => (
+          <div key={agent.name} className="bg-mc-bg-secondary border border-mc-accent/20 rounded-xl p-5 hover:border-mc-accent/40 transition-colors">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 rounded-lg bg-mc-bg-tertiary border border-mc-border flex items-center justify-center text-lg">
                 {agent.emoji}
               </div>
-              <span className="text-xs px-2 py-0.5 bg-mc-bg-tertiary border border-mc-border text-mc-text-secondary rounded-full">
-                Planned
+              <span className="text-xs px-2 py-0.5 bg-mc-accent-green/10 border border-mc-accent-green/30 text-mc-accent-green rounded-full font-medium flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-mc-accent-green inline-block" />
+                Active
               </span>
             </div>
             <div className="font-semibold text-sm mb-0.5">{agent.name}</div>
@@ -165,6 +175,34 @@ export function TeamTab() {
           </div>
         ))}
       </div>
+      {/* Planned agents */}
+      {SUB_AGENTS.some(a => a.status === 'planned') && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
+          {SUB_AGENTS.filter(a => a.status === 'planned').map((agent, i) => (
+            <div key={agent.name} className="bg-mc-bg-secondary border border-mc-border rounded-xl p-5 hover:opacity-70 transition-opacity">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-10 h-10 rounded-lg bg-mc-bg-tertiary border border-mc-border flex items-center justify-center text-lg">
+                  {agent.emoji}
+                </div>
+                <span className="text-xs px-2 py-0.5 bg-mc-bg-tertiary border border-mc-border text-mc-text-secondary rounded-full">
+                  Planned
+                </span>
+              </div>
+              <div className="font-semibold text-sm mb-0.5">{agent.name}</div>
+              <div className="text-xs text-mc-text-secondary mb-3">{agent.title}</div>
+              <p className="text-xs text-mc-text-secondary leading-relaxed mb-3">{agent.description}</p>
+              <div className="flex flex-wrap gap-1">
+                {agent.tags.map((tag, j) => (
+                  <TagPill key={tag} label={tag} color={['blue', 'purple', 'green'][j % 3]} />
+                ))}
+              </div>
+              {agent.model && (
+                <div className="text-xs text-mc-text-secondary font-mono mt-3">{agent.model}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Meta Layer */}
       <div className="flex items-center gap-4">

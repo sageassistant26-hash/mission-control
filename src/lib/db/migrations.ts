@@ -12,6 +12,7 @@ import Database from 'better-sqlite3';
 interface Migration {
   id: string;
   name: string;
+  noTransaction?: boolean; // set true if migration needs to run outside a transaction (e.g. TABLE recreation)
   up: (db: Database.Database) => void;
 }
 
@@ -202,6 +203,79 @@ const migrations: Migration[] = [
         console.log('[Migration 007] Added gateway_agent_id to agents');
       }
     }
+  },
+  {
+    id: '008',
+    name: 'add_done_task_status',
+    noTransaction: true,
+    up: (db) => {
+      console.log('[Migration 008] Adding done status to tasks — recreating table with updated CHECK constraint...');
+      // FK enforcement disabled by runMigrations before calling this
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tasks_new (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          status TEXT DEFAULT 'backlog' CHECK (status IN ('recurring', 'backlog', 'in_progress', 'live_activity', 'pending_dispatch', 'done')),
+          priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+          assigned_agent_id TEXT REFERENCES agents(id),
+          created_by_agent_id TEXT REFERENCES agents(id),
+          workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id),
+          business_id TEXT DEFAULT 'default',
+          due_date TEXT,
+          planning_session_key TEXT,
+          planning_messages TEXT,
+          planning_complete INTEGER DEFAULT 0,
+          planning_spec TEXT,
+          planning_agents TEXT,
+          planning_dispatch_error TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+        INSERT INTO tasks_new SELECT * FROM tasks;
+        DROP TABLE tasks;
+        ALTER TABLE tasks_new RENAME TO tasks;
+        CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+        CREATE INDEX IF NOT EXISTS idx_tasks_assigned ON tasks(assigned_agent_id);
+        CREATE INDEX IF NOT EXISTS idx_tasks_workspace ON tasks(workspace_id);
+      `);
+      console.log('[Migration 008] tasks table updated with done status');
+    }
+  },
+  {
+    id: '009',
+    name: 'add_active_scheduled_agent_status',
+    noTransaction: true,
+    up: (db) => {
+      console.log('[Migration 009] Adding active/scheduled status to agents — recreating table with updated CHECK constraint...');
+      // FK enforcement disabled by runMigrations before calling this
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS agents_new (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          role TEXT NOT NULL,
+          description TEXT,
+          avatar_emoji TEXT DEFAULT '🤖',
+          status TEXT DEFAULT 'standby' CHECK (status IN ('standby', 'working', 'offline', 'active', 'scheduled')),
+          is_master INTEGER DEFAULT 0,
+          workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id),
+          soul_md TEXT,
+          user_md TEXT,
+          agents_md TEXT,
+          model TEXT,
+          source TEXT DEFAULT 'local',
+          gateway_agent_id TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+        INSERT INTO agents_new SELECT * FROM agents;
+        DROP TABLE agents;
+        ALTER TABLE agents_new RENAME TO agents;
+        CREATE INDEX IF NOT EXISTS idx_agents_workspace ON agents(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
+      `);
+      console.log('[Migration 009] agents table updated with active/scheduled status');
+    }
   }
 ];
 
@@ -232,15 +306,28 @@ export function runMigrations(db: Database.Database): void {
     console.log(`[DB] Running migration ${migration.id}: ${migration.name}`);
     
     try {
-      // Run migration in a transaction
-      db.transaction(() => {
+      if (migration.noTransaction) {
+        // Some migrations (table recreation) must run outside a transaction
+        // because PRAGMA foreign_keys cannot be changed inside a transaction
+        db.pragma('foreign_keys = OFF');
         migration.up(db);
         db.prepare('INSERT INTO _migrations (id, name) VALUES (?, ?)').run(migration.id, migration.name);
-      })();
+        db.pragma('foreign_keys = ON');
+      } else {
+        // Run migration in a transaction
+        db.transaction(() => {
+          migration.up(db);
+          db.prepare('INSERT INTO _migrations (id, name) VALUES (?, ?)').run(migration.id, migration.name);
+        })();
+      }
       
       console.log(`[DB] Migration ${migration.id} completed`);
     } catch (error) {
       console.error(`[DB] Migration ${migration.id} failed:`, error);
+      if (migration.noTransaction) {
+        // Re-enable FK enforcement on failure
+        try { db.pragma('foreign_keys = ON'); } catch {}
+      }
       throw error;
     }
   }

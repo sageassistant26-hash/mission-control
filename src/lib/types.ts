@@ -1,8 +1,8 @@
 // Core types for Mission Control
 
-export type AgentStatus = 'standby' | 'working' | 'offline';
+export type AgentStatus = 'standby' | 'working' | 'offline' | 'active' | 'scheduled';
 
-export type TaskStatus = 'recurring' | 'backlog' | 'in_progress' | 'live_activity';
+export type TaskStatus = 'recurring' | 'backlog' | 'in_progress' | 'live_activity' | 'done';
 
 export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
 
@@ -135,6 +135,7 @@ export interface WorkspaceStats {
     backlog: number;
     in_progress: number;
     live_activity: number;
+    done: number;
     total: number;
   };
   agentCount: number;

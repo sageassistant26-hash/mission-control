@@ -1,8 +1,8 @@
 'use client';
 
-import { CheckSquare, FileText, CheckCircle, Brain, BookOpen, Calendar, Users, TrendingUp } from 'lucide-react';
+import { CheckSquare, CheckCircle, Brain, BookOpen, Calendar, Users, TrendingUp, GitBranch } from 'lucide-react';
 
-export type NavSection = 'tasks' | 'content' | 'approvals' | 'schedule' | 'memory' | 'docs' | 'team';
+export type NavSection = 'tasks' | 'plan' | 'approvals' | 'schedule' | 'memory' | 'docs' | 'team';
 
 interface NavItem {
   id: NavSection;
@@ -12,7 +12,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'tasks', label: 'Tasks', icon: <CheckSquare className="w-4 h-4" /> },
-  { id: 'content', label: 'Content', icon: <FileText className="w-4 h-4" /> },
+  { id: 'plan', label: 'Plan', icon: <GitBranch className="w-4 h-4" /> },
   { id: 'approvals', label: 'Approvals', icon: <CheckCircle className="w-4 h-4" /> },
   { id: 'schedule', label: 'Schedule', icon: <Calendar className="w-4 h-4" /> },
   { id: 'memory', label: 'Memory', icon: <Brain className="w-4 h-4" /> },

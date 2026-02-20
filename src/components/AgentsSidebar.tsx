@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, ChevronRight, ChevronLeft, Zap, ZapOff, Loader2, Search } from 'lucide-react';
+import { Plus, ChevronRight, ChevronLeft, Search, Clock } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import type { Agent, AgentStatus, OpenClawSession } from '@/lib/types';
 import { AgentModal } from './AgentModal';
@@ -19,7 +19,6 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
-  const [connectingAgentId, setConnectingAgentId] = useState<string | null>(null);
   const [activeSubAgents, setActiveSubAgents] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
 
@@ -69,50 +68,31 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const handleConnectToOpenClaw = async (agent: Agent, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent selecting the agent
-    setConnectingAgentId(agent.id);
-
-    try {
-      const existingSession = agentOpenClawSessions[agent.id];
-
-      if (existingSession) {
-        // Disconnect
-        const res = await fetch(`/api/agents/${agent.id}/openclaw`, { method: 'DELETE' });
-        if (res.ok) {
-          setAgentOpenClawSession(agent.id, null);
-        }
-      } else {
-        // Connect
-        const res = await fetch(`/api/agents/${agent.id}/openclaw`, { method: 'POST' });
-        if (res.ok) {
-          const data = await res.json();
-          setAgentOpenClawSession(agent.id, data.session as OpenClawSession);
-        } else {
-          const error = await res.json();
-          console.error('Failed to connect to OpenClaw:', error);
-          alert(`Failed to connect: ${error.error || 'Unknown error'}`);
-        }
-      }
-    } catch (error) {
-      console.error('OpenClaw connection error:', error);
-    } finally {
-      setConnectingAgentId(null);
-    }
-  };
-
   const filteredAgents = agents.filter((agent) => {
     if (filter === 'all') return true;
     return agent.status === filter;
   });
 
   const getStatusBadge = (status: AgentStatus) => {
-    const styles = {
+    const styles: Record<string, string> = {
       standby: 'status-standby',
       working: 'status-working',
       offline: 'status-offline',
+      active: 'bg-green-500/20 text-green-400 border border-green-500/30',
+      scheduled: 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
     };
     return styles[status] || styles.standby;
+  };
+
+  const getStatusLabel = (status: AgentStatus) => {
+    const labels: Record<string, string> = {
+      standby: 'Standby',
+      working: 'Working',
+      offline: 'Offline',
+      active: 'Active',
+      scheduled: 'Scheduled',
+    };
+    return labels[status] || status;
   };
 
   return (
@@ -205,7 +185,8 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
                   {/* Status indicator */}
                   <span
                     className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
-                      agent.status === 'working' ? 'bg-mc-accent-green' :
+                      agent.status === 'working' || agent.status === 'active' ? 'bg-mc-accent-green' :
+                      agent.status === 'scheduled' ? 'bg-blue-400' :
                       agent.status === 'standby' ? 'bg-mc-text-secondary' :
                       'bg-gray-500'
                     }`}
@@ -220,7 +201,6 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
           }
 
           // Expanded view - full agent card
-          const isConnecting = connectingAgentId === agent.id;
           return (
             <div
               key={agent.id}
@@ -262,46 +242,20 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
                 </div>
 
                 {/* Status */}
-                <span
-                  className={`text-xs px-2 py-0.5 rounded uppercase ${getStatusBadge(
-                    agent.status
-                  )}`}
-                >
-                  {agent.status}
-                </span>
-              </button>
-
-              {/* OpenClaw Connect Button - show for master agents */}
-              {!!agent.is_master && (
-                <div className="px-2 pb-2">
-                  <button
-                    onClick={(e) => handleConnectToOpenClaw(agent, e)}
-                    disabled={isConnecting}
-                    className={`w-full flex items-center justify-center gap-2 px-2 py-1 rounded text-xs transition-colors ${
-                      openclawSession
-                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                        : 'bg-mc-bg text-mc-text-secondary hover:bg-mc-bg-tertiary hover:text-mc-text'
-                    }`}
+                <div className="flex items-center gap-1">
+                  {agent.status === 'active' && (
+                    <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+                  )}
+                  {agent.status === 'scheduled' && (
+                    <Clock className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                  )}
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded uppercase ${getStatusBadge(agent.status)}`}
                   >
-                    {isConnecting ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>Connecting...</span>
-                      </>
-                    ) : openclawSession ? (
-                      <>
-                        <Zap className="w-3 h-3" />
-                        <span>OpenClaw Connected</span>
-                      </>
-                    ) : (
-                      <>
-                        <ZapOff className="w-3 h-3" />
-                        <span>Connect to OpenClaw</span>
-                      </>
-                    )}
-                  </button>
+                    {getStatusLabel(agent.status)}
+                  </span>
                 </div>
-              )}
+              </button>
             </div>
           );
         })}

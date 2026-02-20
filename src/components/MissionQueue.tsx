@@ -17,6 +17,7 @@ const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'backlog', label: '📥 BACKLOG', color: 'border-t-mc-accent-pink' },
   { id: 'in_progress', label: '⚡ IN PROGRESS', color: 'border-t-mc-accent' },
   { id: 'live_activity', label: '🔥 LIVE ACTIVITY', color: 'border-t-mc-accent-green' },
+  { id: 'done', label: '✅ DONE', color: 'border-t-green-500' },
 ];
 
 export function MissionQueue({ workspaceId }: MissionQueueProps) {
@@ -60,7 +61,7 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
         // Add event
         addEvent({
           id: crypto.randomUUID(),
-          type: targetStatus === 'live_activity' ? 'task_completed' : 'task_status_changed',
+          type: (targetStatus === 'live_activity' || targetStatus === 'done') ? 'task_completed' : 'task_status_changed',
           task_id: draggedTask.id,
           message: `Task "${draggedTask.title}" moved to ${targetStatus}`,
           created_at: new Date().toISOString(),

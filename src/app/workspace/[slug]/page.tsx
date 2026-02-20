@@ -11,7 +11,7 @@ import { LiveFeed } from '@/components/LiveFeed';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
 import { MemoryTab } from '@/components/MemoryTab';
 import { DocsTab } from '@/components/DocsTab';
-import { ContentTab } from '@/components/ContentTab';
+import { PlanningTab } from '@/components/PlanningTab';
 import { ApprovalsTab } from '@/components/ApprovalsTab';
 import { ScheduleTab } from '@/components/ScheduleTab';
 import { TeamTab } from '@/components/TeamTab';
@@ -243,9 +243,9 @@ export default function WorkspacePage() {
               <DocsTab />
             </div>
           )}
-          {activeSection === 'content' && (
-            <div className="flex-1 p-6 overflow-auto">
-              <ContentTab />
+          {activeSection === 'plan' && (
+            <div className="flex-1 overflow-auto">
+              <PlanningTab />
             </div>
           )}
           {activeSection === 'approvals' && (
