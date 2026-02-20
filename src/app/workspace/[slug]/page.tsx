@@ -13,25 +13,18 @@ import { MemoryTab } from '@/components/MemoryTab';
 import { DocsTab } from '@/components/DocsTab';
 import { ContentTab } from '@/components/ContentTab';
 import { ApprovalsTab } from '@/components/ApprovalsTab';
+import { ScheduleTab } from '@/components/ScheduleTab';
+import { TeamTab } from '@/components/TeamTab';
+import { EmberSidebar, type NavSection } from '@/components/EmberSidebar';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
 import { debug } from '@/lib/debug';
 import type { Task, Workspace } from '@/lib/types';
 
-type TabId = 'tasks' | 'content' | 'approvals' | 'memory' | 'docs';
-
-const TABS: { id: TabId; label: string; emoji: string }[] = [
-  { id: 'tasks', label: 'Tasks', emoji: '⚡' },
-  { id: 'content', label: 'Content', emoji: '📝' },
-  { id: 'approvals', label: 'Approvals', emoji: '✅' },
-  { id: 'memory', label: 'Memory', emoji: '🧠' },
-  { id: 'docs', label: 'Docs', emoji: '📄' },
-];
-
 export default function WorkspacePage() {
   const params = useParams();
   const slug = params.slug as string;
-  const [activeTab, setActiveTab] = useState<TabId>('tasks');
+  const [activeSection, setActiveSection] = useState<NavSection>('tasks');
 
   const {
     setAgents,
@@ -216,57 +209,57 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-mc-bg overflow-hidden">
-      <Header workspace={workspace} />
+    <div className="h-screen flex bg-mc-bg overflow-hidden">
+      {/* Left Sidebar Nav */}
+      <EmberSidebar active={activeSection} onSelect={setActiveSection} />
 
-      {/* Tab Bar */}
-      <div className="flex-shrink-0 border-b border-mc-border bg-mc-bg-secondary px-6">
-        <div className="flex gap-1">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-mc-accent text-mc-accent'
-                  : 'border-transparent text-mc-text-secondary hover:text-mc-text hover:border-mc-border'
-              }`}
-            >
-              <span>{tab.emoji}</span>
-              {tab.label}
-            </button>
-          ))}
+      {/* Main Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header workspace={workspace} />
+
+        <div className="flex-1 flex overflow-hidden">
+          {activeSection === 'tasks' && (
+            <>
+              <AgentsSidebar workspaceId={workspace.id} />
+              <MissionQueue workspaceId={workspace.id} />
+              <LiveFeed />
+            </>
+          )}
+          {activeSection === 'schedule' && (
+            <div className="flex-1 p-6 overflow-auto">
+              <h2 className="text-lg font-semibold mb-6">Schedule</h2>
+              <ScheduleTab />
+            </div>
+          )}
+          {activeSection === 'memory' && (
+            <div className="flex-1 p-6 overflow-auto">
+              <h2 className="text-lg font-semibold mb-6">Memory</h2>
+              <MemoryTab />
+            </div>
+          )}
+          {activeSection === 'docs' && (
+            <div className="flex-1 p-6 overflow-auto">
+              <h2 className="text-lg font-semibold mb-6">Docs</h2>
+              <DocsTab />
+            </div>
+          )}
+          {activeSection === 'content' && (
+            <div className="flex-1 p-6 overflow-auto">
+              <ContentTab />
+            </div>
+          )}
+          {activeSection === 'approvals' && (
+            <div className="flex-1 p-6 overflow-auto">
+              <ApprovalsTab />
+            </div>
+          )}
+          {activeSection === 'team' && (
+            <div className="flex-1 p-6 overflow-auto">
+              <h2 className="text-lg font-semibold mb-6">Team</h2>
+              <TeamTab />
+            </div>
+          )}
         </div>
-      </div>
-
-      <div className="flex-1 flex overflow-hidden">
-        {activeTab === 'tasks' && (
-          <>
-            <AgentsSidebar workspaceId={workspace.id} />
-            <MissionQueue workspaceId={workspace.id} />
-            <LiveFeed />
-          </>
-        )}
-        {activeTab === 'memory' && (
-          <div className="flex-1 p-6 overflow-auto">
-            <MemoryTab />
-          </div>
-        )}
-        {activeTab === 'docs' && (
-          <div className="flex-1 p-6 overflow-auto">
-            <DocsTab />
-          </div>
-        )}
-        {activeTab === 'content' && (
-          <div className="flex-1 p-6 overflow-auto">
-            <ContentTab />
-          </div>
-        )}
-        {activeTab === 'approvals' && (
-          <div className="flex-1 p-6 overflow-auto">
-            <ApprovalsTab />
-          </div>
-        )}
       </div>
 
       <SSEDebugPanel />
