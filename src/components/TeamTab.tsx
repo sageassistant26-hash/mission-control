@@ -6,113 +6,182 @@ interface AgentCard {
   emoji: string;
   name: string;
   title: string;
-  roles: string[];
+  description: string;
+  tags: string[];
   status: 'active' | 'planned';
   model?: string;
 }
 
-const AGENTS: AgentCard[] = [
-  {
-    emoji: '🔥',
-    name: 'Ember',
-    title: 'Chief of Staff / CTO',
-    roles: ['Strategic Partner', 'CTO', 'CFO', 'Marketing Strategist', 'Critical Thinking Partner', 'Efficiency Advisor'],
-    status: 'active',
-    model: 'Claude Sonnet 4.6',
-  },
+const EMBER: AgentCard = {
+  emoji: '🔥',
+  name: 'Ember',
+  title: 'Chief of Staff',
+  description: 'Strategizes, builds, ships, and keeps the mission moving. The first point of contact between Roberto and the machine. Wakes up every session ready to work.',
+  tags: ['Strategy', 'CTO', 'CFO', 'Marketing', 'Critical Thinking'],
+  status: 'active',
+  model: 'Claude Sonnet 4.6',
+};
+
+const SUB_AGENTS: AgentCard[] = [
   {
     emoji: '🔬',
-    name: 'Researcher',
-    title: 'Research Sub-Agent',
-    roles: ['Web research', 'Competitive analysis', 'Market intelligence'],
+    name: 'Scout',
+    title: 'Research Agent',
+    description: 'Finds signals, tracks markets, surfaces opportunities before anyone else sees them.',
+    tags: ['Web Search', 'Analysis', 'Radar'],
     status: 'planned',
     model: 'DeepSeek V3',
   },
   {
     emoji: '💻',
-    name: 'Coder',
-    title: 'Coding Sub-Agent',
-    roles: ['Feature development', 'Bug fixes', 'Code review'],
+    name: 'Forge',
+    title: 'Coding Agent',
+    description: 'Writes code, ships features, fixes bugs. Fast and precise.',
+    tags: ['Code', 'Shipping', 'Quality'],
     status: 'planned',
     model: 'Codex / Claude Sonnet',
   },
   {
     emoji: '✍️',
-    name: 'Writer',
-    title: 'Content Sub-Agent',
-    roles: ['Landing page copy', 'Emails', 'Social content', 'Marketing'],
+    name: 'Quill',
+    title: 'Content Agent',
+    description: 'Writes copy that converts. Landing pages, emails, social posts. Voice and quality.',
+    tags: ['Copy', 'Conversion', 'Voice'],
     status: 'planned',
     model: 'Claude Sonnet 4.6',
   },
 ];
 
+function TagPill({ label, color = 'default' }: { label: string; color?: string }) {
+  const colors: Record<string, string> = {
+    default: 'bg-mc-bg-tertiary border-mc-border text-mc-text-secondary',
+    blue: 'bg-blue-900/30 border-blue-500/30 text-blue-300',
+    purple: 'bg-purple-900/30 border-purple-500/30 text-purple-300',
+    green: 'bg-green-900/30 border-green-500/30 text-green-300',
+  };
+  return (
+    <span className={`px-2.5 py-1 rounded-lg text-xs border font-medium ${colors[color] || colors.default}`}>
+      {label}
+    </span>
+  );
+}
+
 export function TeamTab() {
   return (
-    <div className="space-y-8">
-      {/* Mission Statement */}
-      <div className="bg-gradient-to-r from-mc-accent/10 to-mc-accent-purple/10 border border-mc-accent/20 rounded-xl p-6">
-        <div className="text-xs font-semibold text-mc-accent uppercase tracking-widest mb-3">Mission</div>
-        <p className="text-mc-text leading-relaxed text-sm">{MISSION}</p>
+    <div className="max-w-4xl space-y-8">
+
+      {/* Mission Quote Banner */}
+      <div className="bg-gradient-to-r from-mc-accent/10 via-mc-accent-purple/5 to-mc-accent/10 border border-mc-accent/20 rounded-2xl p-6 text-center">
+        <div className="text-mc-accent/60 text-xl mb-3">&ldquo;</div>
+        <p className="text-mc-text text-sm leading-relaxed italic max-w-2xl mx-auto">{MISSION}</p>
       </div>
 
-      {/* Roberto */}
-      <div>
-        <div className="text-xs font-semibold text-mc-text-secondary uppercase tracking-wider mb-3">Human</div>
-        <div className="bg-mc-bg-secondary border border-mc-border rounded-xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-mc-accent to-mc-accent-purple flex items-center justify-center text-xl font-bold text-white">
-            R
-          </div>
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Meet the Team</h2>
+        <p className="text-mc-text-secondary text-sm">Ember + future agents, each with a real role and a real purpose.</p>
+        <p className="text-mc-text-secondary text-xs mt-1">We wanted to see what happens when AI doesn&apos;t just answer questions — but actually runs a business.</p>
+      </div>
+
+      {/* Roberto — The Human */}
+      <div className="flex items-center justify-center gap-4 py-2">
+        <div className="flex-1 h-px bg-mc-border" />
+        <div className="flex items-center gap-3 bg-mc-bg-secondary border border-mc-border rounded-xl px-5 py-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-mc-accent to-mc-accent-purple flex items-center justify-center font-bold text-white">R</div>
           <div>
-            <div className="font-semibold">Roberto Chavarria</div>
-            <div className="text-sm text-mc-text-secondary">Founder · Director, The Society · Longmont, CO</div>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {['The Society', 'Claw Mentor', 'Raise Formula', 'CCC', 'Human Institute'].map(tag => (
-                <span key={tag} className="px-2 py-0.5 bg-mc-bg-tertiary border border-mc-border rounded text-xs text-mc-text-secondary">{tag}</span>
-              ))}
-            </div>
+            <div className="font-semibold text-sm">Roberto Chavarria</div>
+            <div className="text-xs text-mc-text-secondary">Founder · The Human · Sets the direction</div>
           </div>
         </div>
+        <div className="flex-1 h-px bg-mc-border" />
       </div>
 
-      {/* Agents */}
-      <div>
-        <div className="text-xs font-semibold text-mc-text-secondary uppercase tracking-wider mb-3">Agent Team</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {AGENTS.map(agent => (
-            <div key={agent.name} className={`bg-mc-bg-secondary border rounded-xl p-5 ${agent.status === 'active' ? 'border-mc-accent/30' : 'border-mc-border opacity-60'}`}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{agent.emoji}</span>
-                  <div>
-                    <div className="font-semibold flex items-center gap-2">
-                      {agent.name}
-                      {agent.status === 'active' && (
-                        <span className="w-2 h-2 rounded-full bg-mc-accent-green inline-block" />
-                      )}
-                    </div>
-                    <div className="text-xs text-mc-text-secondary">{agent.title}</div>
-                  </div>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                  agent.status === 'active'
-                    ? 'bg-mc-accent-green/10 border-mc-accent-green/30 text-mc-accent-green'
-                    : 'bg-mc-bg-tertiary border-mc-border text-mc-text-secondary'
-                }`}>
-                  {agent.status === 'active' ? 'Online' : 'Planned'}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1 mb-3">
-                {agent.roles.map(role => (
-                  <span key={role} className="px-2 py-0.5 bg-mc-bg-tertiary rounded text-xs text-mc-text-secondary border border-mc-border">{role}</span>
-                ))}
-              </div>
-              {agent.model && (
-                <div className="text-xs text-mc-text-secondary font-mono">{agent.model}</div>
-              )}
+      {/* Connector */}
+      <div className="flex justify-center">
+        <div className="w-px h-8 bg-mc-border" />
+      </div>
+
+      {/* Ember — Chief of Staff (full width) */}
+      <div className="bg-mc-bg-secondary border border-mc-accent/30 rounded-2xl p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 flex items-center justify-center text-2xl">
+              {EMBER.emoji}
             </div>
+            <div>
+              <div className="font-bold text-lg flex items-center gap-2">
+                {EMBER.name}
+                <span className="w-2 h-2 rounded-full bg-mc-accent-green" />
+              </div>
+              <div className="text-sm text-mc-text-secondary">{EMBER.title}</div>
+            </div>
+          </div>
+          <span className="text-xs px-2.5 py-1 bg-mc-accent-green/10 border border-mc-accent-green/30 text-mc-accent-green rounded-full font-medium">
+            Online
+          </span>
+        </div>
+        <p className="text-sm text-mc-text-secondary mb-4 leading-relaxed">{EMBER.description}</p>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {EMBER.tags.map((tag, i) => (
+            <TagPill key={tag} label={tag} color={['blue', 'purple', 'green', 'blue', 'purple'][i % 5]} />
           ))}
         </div>
+        <div className="text-xs text-mc-text-secondary font-mono">Model: {EMBER.model}</div>
       </div>
+
+      {/* Input/Output Divider */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 h-px bg-mc-border" />
+        <div className="flex gap-6 text-xs text-mc-text-secondary font-medium tracking-widest uppercase">
+          <span className="flex items-center gap-1">↓ Input Signal</span>
+          <span className="flex items-center gap-1">Output Action ↓</span>
+        </div>
+        <div className="flex-1 h-px bg-mc-border" />
+      </div>
+
+      {/* Sub-agents */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {SUB_AGENTS.map((agent, i) => (
+          <div key={agent.name} className="bg-mc-bg-secondary border border-mc-border rounded-xl p-5 opacity-70 hover:opacity-90 transition-opacity">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-lg bg-mc-bg-tertiary border border-mc-border flex items-center justify-center text-lg">
+                {agent.emoji}
+              </div>
+              <span className="text-xs px-2 py-0.5 bg-mc-bg-tertiary border border-mc-border text-mc-text-secondary rounded-full">
+                Planned
+              </span>
+            </div>
+            <div className="font-semibold text-sm mb-0.5">{agent.name}</div>
+            <div className="text-xs text-mc-text-secondary mb-3">{agent.title}</div>
+            <p className="text-xs text-mc-text-secondary leading-relaxed mb-3">{agent.description}</p>
+            <div className="flex flex-wrap gap-1">
+              {agent.tags.map((tag, j) => (
+                <TagPill key={tag} label={tag} color={['blue', 'purple', 'green'][j % 3]} />
+              ))}
+            </div>
+            {agent.model && (
+              <div className="text-xs text-mc-text-secondary font-mono mt-3">{agent.model}</div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Meta Layer */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 h-px bg-mc-border" />
+        <span className="text-xs text-mc-text-secondary font-medium tracking-widest uppercase flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-mc-text-secondary" />
+          Meta Layer
+        </span>
+        <div className="flex-1 h-px bg-mc-border" />
+      </div>
+
+      <div className="bg-mc-bg-secondary border border-dashed border-mc-border rounded-xl p-5 text-center opacity-50">
+        <div className="text-2xl mb-2">🧬</div>
+        <div className="font-semibold text-sm mb-1">Future Orchestration</div>
+        <div className="text-xs text-mc-text-secondary">As the team grows, Ember shifts to COO mode — managing, delegating, coordinating. We build that together.</div>
+      </div>
+
     </div>
   );
 }
