@@ -25,7 +25,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [usePlanningMode, setUsePlanningMode] = useState(false);
   // Auto-switch to planning tab if task is in planning status
-  const [activeTab, setActiveTab] = useState<TabType>(task?.status === 'planning' ? 'planning' : 'overview');
+  const [activeTab, setActiveTab] = useState<TabType>(task?.status === 'in_progress' ? 'planning' : 'overview');
 
   // Stable callback for when spec is locked - use window.location.reload() to refresh data
   const handleSpecLocked = useCallback(() => {
@@ -141,7 +141,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
     }
   };
 
-  const statuses: TaskStatus[] = ['planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'done'];
+  const statuses: TaskStatus[] = ['recurring', 'backlog', 'in_progress', 'live_activity'];
   const priorities: TaskPriority[] = ['low', 'normal', 'high', 'urgent'];
 
   const tabs = [

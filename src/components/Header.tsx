@@ -46,7 +46,7 @@ export function Header({ workspace }: HeaderProps) {
 
   const workingAgents = agents.filter((a) => a.status === 'working').length;
   const activeAgents = workingAgents + activeSubAgents;
-  const tasksInQueue = tasks.filter((t) => t.status !== 'done' && t.status !== 'review').length;
+  const tasksInQueue = tasks.filter((t) => t.status !== 'live_activity').length;
 
   return (
     <header className="h-14 bg-mc-bg-secondary border-b border-mc-border flex items-center justify-between px-4">

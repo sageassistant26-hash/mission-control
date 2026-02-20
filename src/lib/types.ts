@@ -2,7 +2,7 @@
 
 export type AgentStatus = 'standby' | 'working' | 'offline';
 
-export type TaskStatus = 'planning' | 'inbox' | 'assigned' | 'in_progress' | 'testing' | 'review' | 'done';
+export type TaskStatus = 'recurring' | 'backlog' | 'in_progress' | 'live_activity';
 
 export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
 
@@ -131,13 +131,10 @@ export interface WorkspaceStats {
   slug: string;
   icon: string;
   taskCounts: {
-    planning: number;
-    inbox: number;
-    assigned: number;
+    recurring: number;
+    backlog: number;
     in_progress: number;
-    testing: number;
-    review: number;
-    done: number;
+    live_activity: number;
     total: number;
   };
   agentCount: number;

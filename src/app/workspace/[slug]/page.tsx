@@ -9,15 +9,30 @@ import { AgentsSidebar } from '@/components/AgentsSidebar';
 import { MissionQueue } from '@/components/MissionQueue';
 import { LiveFeed } from '@/components/LiveFeed';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
+import { MemoryTab } from '@/components/MemoryTab';
+import { DocsTab } from '@/components/DocsTab';
+import { ContentTab } from '@/components/ContentTab';
+import { ApprovalsTab } from '@/components/ApprovalsTab';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
 import { debug } from '@/lib/debug';
 import type { Task, Workspace } from '@/lib/types';
 
+type TabId = 'tasks' | 'content' | 'approvals' | 'memory' | 'docs';
+
+const TABS: { id: TabId; label: string; emoji: string }[] = [
+  { id: 'tasks', label: 'Tasks', emoji: '⚡' },
+  { id: 'content', label: 'Content', emoji: '📝' },
+  { id: 'approvals', label: 'Approvals', emoji: '✅' },
+  { id: 'memory', label: 'Memory', emoji: '🧠' },
+  { id: 'docs', label: 'Docs', emoji: '📄' },
+];
+
 export default function WorkspacePage() {
   const params = useParams();
   const slug = params.slug as string;
-  
+  const [activeTab, setActiveTab] = useState<TabId>('tasks');
+
   const {
     setAgents,
     setTasks,
@@ -193,7 +208,7 @@ export default function WorkspacePage() {
     return (
       <div className="min-h-screen bg-mc-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">🦞</div>
+          <div className="text-4xl mb-4 animate-pulse">🔥</div>
           <p className="text-mc-text-secondary">Loading {slug}...</p>
         </div>
       </div>
@@ -204,18 +219,56 @@ export default function WorkspacePage() {
     <div className="h-screen flex flex-col bg-mc-bg overflow-hidden">
       <Header workspace={workspace} />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Agents Sidebar */}
-        <AgentsSidebar workspaceId={workspace.id} />
-
-        {/* Main Content Area */}
-        <MissionQueue workspaceId={workspace.id} />
-
-        {/* Live Feed */}
-        <LiveFeed />
+      {/* Tab Bar */}
+      <div className="flex-shrink-0 border-b border-mc-border bg-mc-bg-secondary px-6">
+        <div className="flex gap-1">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-mc-accent text-mc-accent'
+                  : 'border-transparent text-mc-text-secondary hover:text-mc-text hover:border-mc-border'
+              }`}
+            >
+              <span>{tab.emoji}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Debug Panel - only shows when debug mode enabled */}
+      <div className="flex-1 flex overflow-hidden">
+        {activeTab === 'tasks' && (
+          <>
+            <AgentsSidebar workspaceId={workspace.id} />
+            <MissionQueue workspaceId={workspace.id} />
+            <LiveFeed />
+          </>
+        )}
+        {activeTab === 'memory' && (
+          <div className="flex-1 p-6 overflow-auto">
+            <MemoryTab />
+          </div>
+        )}
+        {activeTab === 'docs' && (
+          <div className="flex-1 p-6 overflow-auto">
+            <DocsTab />
+          </div>
+        )}
+        {activeTab === 'content' && (
+          <div className="flex-1 p-6 overflow-auto">
+            <ContentTab />
+          </div>
+        )}
+        {activeTab === 'approvals' && (
+          <div className="flex-1 p-6 overflow-auto">
+            <ApprovalsTab />
+          </div>
+        )}
+      </div>
+
       <SSEDebugPanel />
     </div>
   );

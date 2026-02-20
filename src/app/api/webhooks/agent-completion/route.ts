@@ -80,10 +80,10 @@ export async function POST(request: NextRequest) {
 
       // Only move to testing if not already in testing, review, or done
       // (Don't overwrite user's approval or testing results)
-      if (task.status !== 'testing' && task.status !== 'review' && task.status !== 'done') {
+      if (task.status !== 'live_activity') {
         run(
           'UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?',
-          ['testing', now, task.id]
+          ['live_activity', now, task.id]
         );
       }
 
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         task_id: task.id,
-        new_status: 'testing',
+        new_status: 'live_activity',
         message: 'Task moved to testing for automated verification'
       });
     }
@@ -164,10 +164,10 @@ export async function POST(request: NextRequest) {
 
       // Only move to testing if not already in testing, review, or done
       // (Don't overwrite user's approval or testing results)
-      if (task.status !== 'testing' && task.status !== 'review' && task.status !== 'done') {
+      if (task.status !== 'live_activity') {
         run(
           'UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?',
-          ['testing', now, task.id]
+          ['live_activity', now, task.id]
         );
       }
 
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
         task_id: task.id,
         agent_id: session.agent_id,
         summary,
-        new_status: 'testing',
+        new_status: 'live_activity',
         message: 'Task moved to testing for automated verification'
       });
     }

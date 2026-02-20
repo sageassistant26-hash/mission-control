@@ -13,13 +13,10 @@ interface MissionQueueProps {
 }
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
-  { id: 'planning', label: '📋 PLANNING', color: 'border-t-mc-accent-purple' },
-  { id: 'inbox', label: 'INBOX', color: 'border-t-mc-accent-pink' },
-  { id: 'assigned', label: 'ASSIGNED', color: 'border-t-mc-accent-yellow' },
-  { id: 'in_progress', label: 'IN PROGRESS', color: 'border-t-mc-accent' },
-  { id: 'testing', label: 'TESTING', color: 'border-t-mc-accent-cyan' },
-  { id: 'review', label: 'REVIEW', color: 'border-t-mc-accent-purple' },
-  { id: 'done', label: 'DONE', color: 'border-t-mc-accent-green' },
+  { id: 'recurring', label: '🔁 RECURRING', color: 'border-t-mc-accent-purple' },
+  { id: 'backlog', label: '📥 BACKLOG', color: 'border-t-mc-accent-pink' },
+  { id: 'in_progress', label: '⚡ IN PROGRESS', color: 'border-t-mc-accent' },
+  { id: 'live_activity', label: '🔥 LIVE ACTIVITY', color: 'border-t-mc-accent-green' },
 ];
 
 export function MissionQueue({ workspaceId }: MissionQueueProps) {
@@ -63,7 +60,7 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
         // Add event
         addEvent({
           id: crypto.randomUUID(),
-          type: targetStatus === 'done' ? 'task_completed' : 'task_status_changed',
+          type: targetStatus === 'live_activity' ? 'task_completed' : 'task_status_changed',
           task_id: draggedTask.id,
           message: `Task "${draggedTask.title}" moved to ${targetStatus}`,
           created_at: new Date().toISOString(),
@@ -182,7 +179,7 @@ function TaskCard({ task, onDragStart, onClick, isDragging }: TaskCardProps) {
     urgent: 'bg-mc-accent-red',
   };
 
-  const isPlanning = task.status === 'planning';
+  const isPlanning = false;
 
   return (
     <div

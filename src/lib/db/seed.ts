@@ -110,7 +110,7 @@ async function seed() {
     'Orchestrator',
     'Team Lead & Orchestrator',
     'The master orchestrator who coordinates all agents and manages the mission queue',
-    '🦞',
+    '🔥',
     'standby',
     1,
     ORCHESTRATOR_SOUL_MD,
@@ -156,16 +156,16 @@ async function seed() {
 
   // Create some example tasks
   const tasks = [
-    { title: 'Set up development environment', status: 'done', priority: 'high' },
-    { title: 'Create project documentation', status: 'in_progress', priority: 'normal' },
-    { title: 'Research competitor features', status: 'assigned', priority: 'normal' },
-    { title: 'Design new dashboard layout', status: 'inbox', priority: 'low' },
+    { title: 'Set up Ember HQ dashboard', status: 'live_activity', priority: 'high' },
+    { title: 'Build Claw Mentor scoping', status: 'in_progress', priority: 'normal' },
+    { title: 'Research OpenClaw influencers', status: 'backlog', priority: 'normal' },
+    { title: 'Morning brief automation', status: 'recurring', priority: 'low' },
   ];
 
   for (let i = 0; i < tasks.length; i++) {
     const taskId = uuidv4();
     const task = tasks[i];
-    const assignedTo = task.status !== 'inbox' ? agentIds[i % agentIds.length] : null;
+    const assignedTo = task.status !== 'backlog' ? agentIds[i % agentIds.length] : null;
 
     db.prepare(
       `INSERT INTO tasks (id, title, status, priority, assigned_agent_id, created_by_agent_id, business_id, created_at, updated_at)
@@ -195,7 +195,7 @@ async function seed() {
     uuidv4(),
     teamConvoId,
     orchestratorId,
-    "Welcome to Mission Control, team! 🦞 I'm your orchestrator. Let's get to work.",
+    "Welcome to Mission Control, team! 🔥 I'm your orchestrator. Let's get to work.",
     'text',
     now
   );

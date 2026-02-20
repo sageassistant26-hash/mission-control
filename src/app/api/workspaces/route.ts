@@ -31,13 +31,10 @@ export async function GET(request: NextRequest) {
         `).all(workspace.id) as { status: TaskStatus; count: number }[];
         
         const counts: WorkspaceStats['taskCounts'] = {
-          planning: 0,
-          inbox: 0,
-          assigned: 0,
+          recurring: 0,
+          backlog: 0,
           in_progress: 0,
-          testing: 0,
-          review: 0,
-          done: 0,
+          live_activity: 0,
           total: 0
         };
         

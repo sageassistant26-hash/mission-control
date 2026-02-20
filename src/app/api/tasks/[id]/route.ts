@@ -63,22 +63,7 @@ export async function PATCH(
     const values: unknown[] = [];
     const now = new Date().toISOString();
 
-    // Workflow enforcement for agent-initiated approvals
-    // If an agent is trying to move review→done, they must be a master agent
-    // User-initiated moves (no agent ID) are allowed
-    if (validatedData.status === 'done' && existing.status === 'review' && validatedData.updated_by_agent_id) {
-      const updatingAgent = queryOne<Agent>(
-        'SELECT is_master FROM agents WHERE id = ?',
-        [validatedData.updated_by_agent_id]
-      );
-
-      if (!updatingAgent || !updatingAgent.is_master) {
-        return NextResponse.json(
-          { error: 'Forbidden: only the master agent can approve tasks' },
-          { status: 403 }
-        );
-      }
-    }
+    // Workflow enforcement placeholder (simplified for Ember HQ)
 
     if (validatedData.title !== undefined) {
       updates.push('title = ?');
@@ -105,13 +90,13 @@ export async function PATCH(
       updates.push('status = ?');
       values.push(validatedData.status);
 
-      // Auto-dispatch when moving to assigned
-      if (validatedData.status === 'assigned' && existing.assigned_agent_id) {
+      // Auto-dispatch when moving to in_progress
+      if (validatedData.status === 'in_progress' && existing.assigned_agent_id) {
         shouldDispatch = true;
       }
 
       // Log status change event
-      const eventType = validatedData.status === 'done' ? 'task_completed' : 'task_status_changed';
+      const eventType = validatedData.status === 'live_activity' ? 'task_completed' : 'task_status_changed';
       run(
         `INSERT INTO events (id, type, task_id, message, created_at)
          VALUES (?, ?, ?, ?, ?)`,
@@ -133,8 +118,8 @@ export async function PATCH(
             [uuidv4(), 'task_assigned', validatedData.assigned_agent_id, id, `"${existing.title}" assigned to ${agent.name}`, now]
           );
 
-          // Auto-dispatch if already in assigned status or being assigned now
-          if (existing.status === 'assigned' || validatedData.status === 'assigned') {
+          // Auto-dispatch if already in_progress or being moved to in_progress
+          if (existing.status === 'in_progress' || validatedData.status === 'in_progress') {
             shouldDispatch = true;
           }
         }

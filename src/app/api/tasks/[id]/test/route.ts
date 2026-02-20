@@ -519,7 +519,7 @@ export async function GET(
       'HTTP status code validation (for URL deliverables)'
     ],
     workflow: {
-      expectedStatus: 'testing',
+      expectedStatus: 'in_progress',
       onPass: 'Moves to review for human approval',
       onFail: 'Moves to assigned for agent to fix issues'
     },
