@@ -36,7 +36,7 @@ const PHASES: Phase[] = [
       '✅ Stripe payments live (all 3 tiers)',
       '✅ Supabase DB + magic link auth (ClawMentor branded email)',
       '⏳ Onboarding survey wizard (Forge, Feb 21)',
-      '⏳ Ember mentor package + self-improving mentor skill',
+      '✅ Ember mentor package + meta-skill (mentor-package-skill.md) — PRIVATE pending Roberto approval',
       '⏳ Compatibility analysis engine (DeepSeek V3)',
       '⏳ Report card UI + apply/rollback flow',
       '⏳ First mentor outreach: Tech With Tim DM sent',
