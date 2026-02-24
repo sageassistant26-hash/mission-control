@@ -12,6 +12,7 @@ interface ApprovalItem {
   requestedAt: string;
   status: 'pending' | 'approved' | 'rejected';
   url?: string;
+  docs?: string[];
   branch?: string;
   resolvedAt?: string;
 }
@@ -43,6 +44,35 @@ export function ApprovalsTab() {
   const [items, setItems] = useState<ApprovalItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
+  const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
+  const [docContent, setDocContent] = useState<Record<string, string>>({});
+  const [docLoading, setDocLoading] = useState<string | null>(null);
+
+  const loadDoc = async (docPath: string) => {
+    if (docContent[docPath]) {
+      setExpandedDoc(expandedDoc === docPath ? null : docPath);
+      return;
+    }
+    setDocLoading(docPath);
+    setExpandedDoc(docPath);
+    try {
+      const res = await fetch('/api/docs');
+      if (res.ok) {
+        const docs = await res.json();
+        const match = docs.find((d: { name: string; path: string; content: string }) =>
+          d.path === docPath || d.name === docPath || d.path.endsWith(docPath) || d.name.endsWith(docPath.replace(/.*\/projects\//, ''))
+        );
+        if (match) {
+          setDocContent(prev => ({ ...prev, [docPath]: match.content }));
+        } else {
+          setDocContent(prev => ({ ...prev, [docPath]: '(Document not found in workspace)' }));
+        }
+      }
+    } catch {
+      setDocContent(prev => ({ ...prev, [docPath]: '(Failed to load document)' }));
+    }
+    setDocLoading(null);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -123,8 +153,31 @@ export function ApprovalsTab() {
                           <span>·</span>
                           <span>{timeAgo(item.requestedAt)}</span>
                           {item.branch && <><span>·</span><span className="font-mono">{item.branch}</span></>}
-                          {item.url && <><span>·</span><a href={item.url} target="_blank" rel="noopener noreferrer" className="text-mc-accent hover:underline">View →</a></>}
+                          {item.url && !item.docs && <><span>·</span><a href={item.url} target="_blank" rel="noopener noreferrer" className="text-mc-accent hover:underline">View →</a></>}
                         </div>
+                        {item.docs && item.docs.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {item.docs.map(doc => (
+                              <button
+                                key={doc}
+                                onClick={() => loadDoc(doc)}
+                                className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                                  expandedDoc === doc
+                                    ? 'bg-mc-accent/10 border-mc-accent/30 text-mc-accent'
+                                    : 'border-mc-border text-mc-text-secondary hover:text-mc-text hover:border-mc-text-secondary'
+                                }`}
+                              >
+                                📄 {doc.split('/').pop()}
+                                {docLoading === doc && ' ⏳'}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {expandedDoc && item.docs?.includes(expandedDoc) && docContent[expandedDoc] && (
+                          <div className="mt-3 max-h-96 overflow-y-auto rounded-lg bg-mc-bg-primary border border-mc-border p-4">
+                            <pre className="text-xs text-mc-text-secondary whitespace-pre-wrap font-mono leading-relaxed">{docContent[expandedDoc]}</pre>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
