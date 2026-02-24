@@ -15,6 +15,7 @@ import { PlanningTab } from '@/components/PlanningTab';
 import { ApprovalsTab } from '@/components/ApprovalsTab';
 import { ScheduleTab } from '@/components/ScheduleTab';
 import { TeamTab } from '@/components/TeamTab';
+import { WaitlistTab } from '@/components/WaitlistTab';
 import { EmberSidebar, type NavSection } from '@/components/EmberSidebar';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
@@ -257,6 +258,11 @@ export default function WorkspacePage() {
             <div className="flex-1 p-6 overflow-auto">
               <h2 className="text-lg font-semibold mb-6">Team</h2>
               <TeamTab />
+            </div>
+          )}
+          {activeSection === 'waitlist' && (
+            <div className="flex-1 p-6 overflow-auto">
+              <WaitlistTab />
             </div>
           )}
         </div>
